@@ -27,19 +27,38 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
 @app.get("/")
 async def serve_ui():
-    # index.html lives one level up (project root) since the backend was
-    # moved into ./python-backend/ to keep Vercel's framework auto-detect happy.
-    here = os.path.dirname(os.path.abspath(__file__))
-    candidates = [
-        os.path.join(os.path.dirname(here), "index.html"),  # project root
-        os.path.join(here, "index.html"),                    # fallback (legacy)
-    ]
-    for path in candidates:
-        if os.path.exists(path):
-            return FileResponse(path, media_type="text/html")
+    # index.html lives at project root (one level above python_backend/).
+    path = os.path.join(_PROJECT_ROOT, "index.html")
+    if os.path.exists(path):
+        return FileResponse(path, media_type="text/html")
     return Response(content="index.html not found", status_code=404)
+
+
+@app.get("/favicon.svg")
+async def favicon_svg():
+    path = os.path.join(_PROJECT_ROOT, "favicon.svg")
+    if os.path.exists(path):
+        return FileResponse(path, media_type="image/svg+xml")
+    return Response(status_code=404)
+
+
+@app.get("/favicon.png")
+async def favicon_png():
+    path = os.path.join(_PROJECT_ROOT, "favicon.png")
+    if os.path.exists(path):
+        return FileResponse(path, media_type="image/png")
+    return Response(status_code=404)
+
+
+@app.get("/favicon.ico")
+async def favicon_ico():
+    # Browsers ask for favicon.ico by reflex — redirect to the SVG.
+    return FileResponse(os.path.join(_PROJECT_ROOT, "favicon.svg"), media_type="image/svg+xml")
 
 
 # ── Voice preview — short sample MP3 so the user can audition a voice ──
