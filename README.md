@@ -376,17 +376,20 @@ This runs the same TypeScript Edge functions locally — identical behavior to p
 
 ## Local development (Python)
 
-The Python backend mirrors the same HTTP API (`/api/turn`, `/api/voice-preview`, `/api/health`) **plus** a `/ws` endpoint for true low-latency streaming STT.
+The Python backend lives in [`python-backend/`](python-backend/) and mirrors the same HTTP API (`/api/turn`, `/api/voice-preview`, `/api/health`) **plus** a `/ws` endpoint for true low-latency streaming STT.
 
 ```powershell
-# 1. Install deps
+# 1. Move into the backend folder
+cd python-backend
+
+# 2. Install deps
 pip install -r requirements.txt
 
-# 2. Create .env with your keys (copy from .env.example)
-cp .env.example .env
+# 3. Create .env with your keys (copy from ../.env.example, or use the root .env)
+copy ..\.env.example .env
 notepad .env
 
-# 3. Run with auto-reload
+# 4. Run with auto-reload — note the index.html path
 python -m uvicorn main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
@@ -509,13 +512,14 @@ The **Test** button next to Voice plays a short sample of the chosen voice in th
 │
 ├── index.html                            # Single-file frontend (no build step)
 │
-├── main.py                               # FastAPI app — local dev backend
-├── llm_service.py                        # OpenAI streaming + token usage
-├── sarvam_services.py                    # Sarvam STT + TTS REST clients
-├── sarvam_stream.py                      # Sarvam streaming STT WebSocket client (for /ws)
-├── memory.py                             # In-process chat history (last 6 turns)
-├── config.py                             # Loads .env (override=True)
-├── requirements.txt                      # Python deps
+├── python-backend/                       # Local dev backend (excluded from Vercel deploy)
+│   ├── main.py                            # FastAPI app
+│   ├── llm_service.py                     # OpenAI streaming + token usage
+│   ├── sarvam_services.py                 # Sarvam STT + TTS REST clients
+│   ├── sarvam_stream.py                   # Sarvam streaming STT WebSocket client (for /ws)
+│   ├── memory.py                          # In-process chat history (last 6 turns)
+│   ├── config.py                          # Loads .env (override=True)
+│   └── requirements.txt                   # Python deps
 │
 ├── package.json                          # Node deps (OpenAI SDK + TS)
 ├── tsconfig.json

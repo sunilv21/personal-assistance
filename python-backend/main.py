@@ -29,10 +29,17 @@ app.add_middleware(
 
 @app.get("/")
 async def serve_ui():
-    return FileResponse(
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html"),
-        media_type="text/html"
-    )
+    # index.html lives one level up (project root) since the backend was
+    # moved into ./python-backend/ to keep Vercel's framework auto-detect happy.
+    here = os.path.dirname(os.path.abspath(__file__))
+    candidates = [
+        os.path.join(os.path.dirname(here), "index.html"),  # project root
+        os.path.join(here, "index.html"),                    # fallback (legacy)
+    ]
+    for path in candidates:
+        if os.path.exists(path):
+            return FileResponse(path, media_type="text/html")
+    return Response(content="index.html not found", status_code=404)
 
 
 # ── Voice preview — short sample MP3 so the user can audition a voice ──

@@ -1,11 +1,5 @@
 # Legacy Python backend (kept for local dev only — not deployed to Vercel)
-main.py
-llm_service.py
-memory.py
-sarvam_services.py
-sarvam_stream.py
-config.py
-requirements.txt
+python-backend/
 __pycache__/
 *.pyc
 .venv/
