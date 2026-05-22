@@ -31,8 +31,8 @@ def generate_response(user_input, memory, language=None):
     response = client.chat.completions.create(
         model=settings.OPENAI_MODEL,
         messages=messages,
-        temperature=0.4,
-        max_completion_tokens=80,  # ultra short = ultra fast
+        # temperature omitted — gpt-5 reasoning models only accept default
+        max_completion_tokens=200,  # higher cap because gpt-5-nano uses some for reasoning
     )
 
     text = response.choices[0].message.content
@@ -56,8 +56,8 @@ def stream_response(user_input, memory, language=None):
     stream = client.chat.completions.create(
         model=settings.OPENAI_MODEL,
         messages=messages,
-        temperature=0.4,
-        max_completion_tokens=80,
+        # temperature omitted — gpt-5 reasoning models only accept default
+        max_completion_tokens=200,  # higher cap because gpt-5-nano uses some for reasoning
         stream=True,
         stream_options={"include_usage": True},
     )

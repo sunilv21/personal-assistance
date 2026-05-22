@@ -513,8 +513,8 @@
     <div class="p-row">
         <div class="p-icon"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></div>
         <div class="p-body">
-            <div class="p-vals"><span class="p-label">Sensitivity</span><span class="v" id="sensValue">5</span></div>
-            <input type="range" class="p-input" id="sensSlider" min="1" max="10" step="1" value="5">
+            <div class="p-vals"><span class="p-label">Sensitivity</span><span class="v" id="sensValue">6</span></div>
+            <input type="range" class="p-input" id="sensSlider" min="1" max="10" step="1" value="6">
             <div class="range-labels"><span>1</span><span>10</span></div>
         </div>
     </div>
@@ -522,8 +522,8 @@
     <div class="p-row">
         <div class="p-icon"><svg viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg></div>
         <div class="p-body">
-            <div class="p-vals"><span class="p-label">Pause</span><span class="v" id="pauseValue">0.50s</span></div>
-            <input type="range" class="p-input" id="pauseSlider" min="300" max="2000" step="50" value="500">
+            <div class="p-vals"><span class="p-label">Pause</span><span class="v" id="pauseValue">0.60s</span></div>
+            <input type="range" class="p-input" id="pauseSlider" min="300" max="2000" step="50" value="600">
             <div class="range-labels"><span>0.3s</span><span>2.0s</span></div>
         </div>
     </div>
@@ -580,12 +580,13 @@
 const API_TURN = '/api/turn';
 const API_PREVIEW = '/api/voice-preview';
 
-let SENSITIVITY=5, SILENCE_MS=500;
-function getSNR(){return 5.0-(SENSITIVITY-1)*0.389}
-const MIN_SPEECH_THRESH=0.012;
+let SENSITIVITY=6, SILENCE_MS=600;
+// SNR mapping: sens=1 → 4.0× (strict), sens=10 → 1.3× (very easy to trigger)
+function getSNR(){return 4.0-(SENSITIVITY-1)*0.30}
+const MIN_SPEECH_THRESH=0.010;
 let noiseFloor=0.005;
 function getSpeechThresh(){return Math.max(MIN_SPEECH_THRESH, noiseFloor*getSNR())}
-function getSilenceThresh(){return Math.max(noiseFloor*1.4, getSpeechThresh()*0.5)}
+function getSilenceThresh(){return Math.max(noiseFloor*1.3, getSpeechThresh()*0.45)}
 
 let micInitialized=false,micReady=false,calibrating=false;
 let audioCtx=null,analyser=null,micStream=null;
@@ -992,6 +993,8 @@ function startLocalVAD(){
         if(!convoActive||agentSpeaking||processing){vadId=null;return}
         const rms=getRMS(), speechT=getSpeechThresh(), silenceT=getSilenceThresh();
         if(!userSpeaking){
+            // Accumulate gradually — brief quiet moments between syllables
+            // don't reset progress, just decrement. Avoids missing soft voices.
             if(rms>=speechT){
                 speechFrames++;
                 if(speechFrames>=SPEECH_CONFIRM_LOCAL){
@@ -999,7 +1002,7 @@ function startLocalVAD(){
                     setState('listening'); $sil.style.width='0%';
                     startRecording();
                 }
-            } else speechFrames=0;
+            } else speechFrames=Math.max(0, speechFrames-1);
         } else {
             const recElapsed=Date.now()-speechStartTime;
             if(rms<silenceT){
@@ -1039,7 +1042,7 @@ async function stopRecordingAndUpload(){
     const mime=rec.mimeType||'audio/webm';
     const blob=new Blob(mediaChunks,{type:mime});
     mediaChunks=[];
-    if(blob.size<800){ resumeListening(); return; }
+    if(blob.size<300){ resumeListening(); return; }
 
     const ext=mime.includes('mp4')?'mp4':mime.includes('webm')?'webm':'wav';
     const fd=new FormData();
@@ -1051,7 +1054,11 @@ async function stopRecordingAndUpload(){
     currentAbort=new AbortController();
     try{
         const res=await fetch(API_TURN, {method:'POST', body:fd, signal:currentAbort.signal});
-        if(res.status===204){ processing=false; resumeListening(); return; }
+        if(res.status===204){
+            // STT returned no transcript — likely too quiet, too noisy, or unrecognized.
+            toast("Didn't catch that — try again",'err');
+            processing=false; resumeListening(); return;
+        }
         if(!res.ok){
             const errText=await res.text().catch(()=>'');
             toast(`Server ${res.status}: ${errText.slice(0,80)}`,'err');

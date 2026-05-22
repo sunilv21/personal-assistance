@@ -177,13 +177,13 @@ export default async function handler(req: Request) {
                 const systemContent = `${SYSTEM_PROMPT}\n- LANGUAGE LOCK: reply ONLY in ${langName}. Never switch languages, no matter what the user says.`;
 
                 const llmStream = await openai.chat.completions.create({
-                    model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+                    model: process.env.OPENAI_MODEL || "gpt-5-nano",
                     messages: [
                         { role: "system", content: systemContent },
                         { role: "user", content: stt.transcript },
                     ],
-                    temperature: 0.4,
-                    max_completion_tokens: 80,
+                    // temperature omitted — gpt-5 reasoning models only accept default
+                    max_completion_tokens: 200,  // gpt-5-nano uses some for hidden reasoning
                     stream: true,
                     stream_options: { include_usage: true },
                 });

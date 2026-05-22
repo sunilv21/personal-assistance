@@ -14,7 +14,7 @@ class Settings:
     SARVAM_DEFAULT_LANGUAGE = os.getenv("SARVAM_DEFAULT_LANGUAGE", "mr-IN")
 
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-    OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
+    OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5-nano")
     LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", 0.5))
     LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", 500))
 

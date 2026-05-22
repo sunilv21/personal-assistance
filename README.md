@@ -209,7 +209,7 @@ A single end-user turn:
    - Posted as `FormData` to `/api/turn` with `audio`, `language`, `voice`.
 5. **Edge function receives the audio**, calls Sarvam STT (`POST /speech-to-text`, model `saaras:v3`), gets back the transcript and detected language.
 6. **First NDJSON event emitted:** `{type:"transcript_final", text, language}` — frontend shows the italic transcript under the orb.
-7. **OpenAI Chat Completions stream opened** with `stream:true, stream_options:{include_usage:true}`, `gpt-4o-mini`, `max_completion_tokens:80`, temperature 0.4.
+7. **OpenAI Chat Completions stream opened** with `stream:true, stream_options:{include_usage:true}`, `gpt-5-nano` (reasoning model — `temperature` omitted, `max_completion_tokens:200` to account for hidden reasoning tokens).
 8. **As tokens stream in**, server buffers them. The moment a sentence boundary appears (`. ! ? ।`), the sentence is yanked from the buffer and a Sarvam TTS call (`bulbul:v3`, `output_audio_codec:wav`, `speech_sample_rate:24000`, `enable_preprocessing:true`) fires immediately — *without waiting for that call to finish before the next sentence starts*.
 9. **TTS results emit in order** via a promise chain — sentence #2's audio waits for sentence #1's audio event to flush, even if its TTS call returned faster.
 10. **Each `{type:"audio", idx, text, b64}` event** is received by the browser, base64-decoded into a `Uint8Array`, then `audioCtx.decodeAudioData()` → `AudioBufferSourceNode.start(nextStartTime)`. `nextStartTime` accumulates each buffer's duration, so chunks play perfectly seamless.
@@ -231,7 +231,7 @@ If the user taps the orb during step 9–13, the playback queue is drained, the 
 | Audio analysis | Web Audio API: `BiquadFilter`, `AnalyserNode`, `DynamicsCompressor`, `AudioBufferSourceNode` | Low-latency level metering, VAD, playback limiting |
 | Visualization | `<canvas>` + `requestAnimationFrame` | Rings + waveform driven by `getByteTimeDomainData` |
 | STT | Sarvam **Saaras v3** | High accuracy across 11 Indic languages + English |
-| LLM | OpenAI **gpt-4o-mini** with streaming | Cheap, fast, supports `stream_options.include_usage` |
+| LLM | OpenAI **gpt-5-nano** with streaming | Reasoning model, ultra-cheap, supports `stream_options.include_usage` |
 | TTS | Sarvam **Bulbul v3** | 39 natural Indic-accent voices, WAV output for cleanest playback |
 | Production backend | Vercel **Edge Functions** (TypeScript) | Edge-region distribution, HTTP/2 streaming responses, no cold-start for hot functions |
 | Local dev backend | **FastAPI + uvicorn**, optional WebSocket bridge to Sarvam streaming STT | Lowest possible latency for development |
@@ -342,7 +342,7 @@ vercel link
 vercel env add SARVAM_API_KEY production
 vercel env add OPENAI_API_KEY production
 # Optional:
-vercel env add OPENAI_MODEL production              # default: gpt-4o-mini
+vercel env add OPENAI_MODEL production              # default: gpt-5-nano
 vercel env add SARVAM_DEFAULT_VOICE production      # default: shubh
 vercel env add SARVAM_DEFAULT_LANGUAGE production   # default: en-IN
 vercel env add ALLOWED_ORIGIN production            # default: * (lock to your URL)
@@ -358,7 +358,7 @@ vercel --prod
 
 ```powershell
 curl https://YOUR-APP.vercel.app/api/health
-# {"ok":true,"sarvam":true,"openai":true,"model":"gpt-4o-mini",...}
+# {"ok":true,"sarvam":true,"openai":true,"model":"gpt-5-nano",...}
 ```
 
 Open `https://YOUR-APP.vercel.app/` and tap the orb.
@@ -403,7 +403,7 @@ The frontend uses `/api/turn` by default (HTTP), so it works identically to the 
 |---|---|---|---|
 | `SARVAM_API_KEY` | yes | — | Sarvam Saaras (STT) + Bulbul (TTS) auth |
 | `OPENAI_API_KEY` | yes | — | Chat Completions auth |
-| `OPENAI_MODEL` | no | `gpt-4o-mini` | Any OpenAI chat model that supports streaming |
+| `OPENAI_MODEL` | no | `gpt-5-nano` | Any OpenAI chat model that supports streaming. Note: gpt-5-series ignores `temperature` and uses some of `max_completion_tokens` for hidden reasoning. |
 | `SARVAM_DEFAULT_VOICE` | no | `shubh` | Voice when the user doesn't pick one |
 | `SARVAM_DEFAULT_LANGUAGE` | no | `en-IN` | Language fallback |
 | `ALLOWED_ORIGIN` | no | `*` | CORS lockdown — set to your Vercel URL in prod |
@@ -579,7 +579,7 @@ Rough per-turn cost (en-IN, 5-second user utterance, ~50-word reply):
 | Item | Provider | Approx. cost |
 |---|---|---|
 | 1 × STT (Saaras v3) | Sarvam | ~$0.0005 per minute |
-| 1 × LLM stream (gpt-4o-mini, ~150 in / ~80 out tokens) | OpenAI | ~$0.00007 |
+| 1 × LLM stream (gpt-5-nano, ~150 in / ~80 out + reasoning tokens) | OpenAI | ~$0.00004 |
 | 2–4 × TTS (Bulbul v3, ~80 chars each) | Sarvam | ~$0.002 per minute of speech |
 | Vercel Edge invocation | Vercel | free tier covers ~100k turns/month |
 
@@ -600,7 +600,8 @@ Effectively **fractions of a cent per turn**. The token chip in the UI tracks li
 | Mic triggers on background noise | Lower **Sensitivity** (2–3), click **Recal**. |
 | Audio sounds harsh / distorted | Lower **Volume** to 50–70%. Limiter prevents *clipping* but extra headroom is gentler on small speakers. |
 | Rings cut off at edges | Window very narrow — they adapt to canvas size, but extreme sizes can clip. Resize. |
-| Token chip never updates | `stream_options.include_usage` not supported by the model. Switch to gpt-4o-mini or any `gpt-4o*`. |
+| Token chip never updates | `stream_options.include_usage` not supported by the model. Switch to `gpt-5-nano`, `gpt-5-mini`, or any `gpt-4o*`. |
+| "Didn't catch that" toast every turn | Voice too quiet, room too noisy, or noise floor mis-calibrated. Click **Recal** in the panel and stay silent during the 1.2 s calibration. Then raise **Sensitivity** to 7-8. |
 
 ---
 
