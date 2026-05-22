@@ -1,0 +1,17 @@
+{
+  "name": "voice-agent",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Multilingual voice agent — Sarvam STT/TTS + OpenAI streaming LLM on Vercel Edge",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "openai": "^4.83.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.4.0"
+  }
+}

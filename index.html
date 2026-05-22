@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#fafbfc">
+    <title>Voice Agent</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <style>
+        *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+        :root{
+            --bg:#fafbfc;
+            --surface:#ffffff;
+            --surface-2:#f8fafc;
+            --border:#e5e7eb;
+            --border-soft:#eef0f3;
+            --border-strong:#d1d5db;
+            --text:#1f2937;
+            --text-dim:#6b7280;
+            --text-faint:#9ca3af;
+            --primary:#4f46e5;
+            --primary-hover:#4338ca;
+            --primary-light:#eef2ff;
+            --primary-soft:#f5f6fe;
+            --violet:#8b5cf6;
+            --violet-light:#f3f0ff;
+            --green:#10b981;
+            --green-light:#ecfdf5;
+            --yellow:#f59e0b;
+            --red:#ef4444;
+            --rose:#fb7185;
+            --panel-w:340px;
+            --radius:14px;
+            --radius-sm:10px;
+            --radius-xs:8px;
+            --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,monospace;
+            --shadow-sm:0 1px 2px rgba(15,23,42,.04);
+            --shadow:0 1px 3px rgba(15,23,42,.06),0 1px 2px rgba(15,23,42,.04);
+            --shadow-md:0 4px 12px rgba(15,23,42,.06),0 2px 4px rgba(15,23,42,.04);
+            --shadow-lg:0 12px 32px rgba(15,23,42,.08);
+        }
+
+        html,body{height:100%}
+        body{
+            font-family:'Inter',system-ui,-apple-system,sans-serif;
+            background:var(--bg);color:var(--text);
+            -webkit-font-smoothing:antialiased;
+            user-select:none;overflow:hidden;
+            font-feature-settings:'cv11','ss01';
+        }
+        body{
+            display:grid;
+            grid-template-rows:auto 1fr;
+            grid-template-columns:1fr var(--panel-w);
+            grid-template-areas:"topbar panel" "main panel";
+            height:100dvh;
+            padding:14px;
+            gap:14px;
+        }
+
+        /* ───────── TOPBAR ───────── */
+        .topbar{
+            grid-area:topbar;
+            display:flex;align-items:center;gap:14px;
+            padding:0;
+        }
+        .brand-card{
+            width:50px;height:50px;border-radius:12px;
+            background:var(--surface);border:1px solid var(--border);
+            display:flex;align-items:center;justify-content:center;
+            box-shadow:var(--shadow-sm);
+            color:var(--primary);
+            flex-shrink:0;
+        }
+        .brand-card svg{width:24px;height:24px}
+        .tokens{
+            display:inline-flex;align-items:center;gap:14px;
+            padding:13px 18px;
+            background:var(--surface);border:1px solid var(--border);border-radius:14px;
+            box-shadow:var(--shadow-sm);
+        }
+        .tokens .lbl{font-size:.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.12em;font-weight:600}
+        .tokens .val{font-family:var(--mono);font-size:1.1rem;color:var(--primary);font-weight:600;font-variant-numeric:tabular-nums}
+        .tokens .sub{font-family:var(--mono);font-size:.78rem;color:var(--text-dim);font-variant-numeric:tabular-nums}
+        .tokens .sub .in{color:var(--green)}
+        .tokens .sub .out{color:var(--rose)}
+
+        .title-block{
+            flex:1;display:flex;align-items:center;justify-content:center;gap:10px;
+            font-size:.92rem;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--text);
+        }
+        .title-block .live-dot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px var(--green-light);animation:liveP 2.4s ease-in-out infinite}
+        @keyframes liveP{50%{box-shadow:0 0 0 6px var(--green-light)}}
+
+        .hamburger{
+            display:none;align-items:center;justify-content:center;
+            width:46px;height:46px;
+            background:var(--surface);border:1px solid var(--border);border-radius:12px;
+            cursor:pointer;color:var(--text-dim);padding:0;
+            box-shadow:var(--shadow-sm);transition:all .15s;
+        }
+        .hamburger:hover{color:var(--primary);border-color:var(--primary)}
+        .hamburger svg{width:22px;height:22px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+        /* ───────── MAIN STAGE ───────── */
+        .main{
+            grid-area:main;position:relative;
+            background:var(--surface);border:1px solid var(--border);border-radius:16px;
+            display:flex;flex-direction:column;align-items:center;justify-content:center;
+            gap:18px;padding:32px 28px;overflow:hidden;
+            box-shadow:var(--shadow-sm);
+        }
+
+        /* Orbital decorative rings */
+        .orb-area{
+            position:relative;width:min(720px,100%);height:420px;max-width:100%;
+            display:flex;align-items:center;justify-content:center;
+            flex-shrink:0;cursor:pointer;-webkit-tap-highlight-color:transparent;
+        }
+        .rings-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1}
+
+        .orb{
+            position:relative;width:160px;height:160px;border-radius:50%;
+            background:radial-gradient(circle at 35% 30%,#fff 0%,#dbeafe 35%,#e0e7ff 65%,#ddd6fe 100%);
+            box-shadow:
+                inset 0 -22px 32px rgba(99,102,241,.18),
+                inset 0 18px 28px rgba(255,255,255,.55),
+                0 18px 48px rgba(99,102,241,.18),
+                0 0 0 1px rgba(99,102,241,.08);
+            display:flex;align-items:center;justify-content:center;
+            transition:all .5s ease;
+            z-index:2;
+        }
+        .orb-icon{display:flex;align-items:flex-end;gap:4px;height:38px}
+        .orb-icon span{
+            width:5px;border-radius:3px;background:var(--primary);
+            box-shadow:0 0 8px rgba(79,70,229,.4);
+            transition:height .15s ease,background .35s;
+        }
+        .orb-icon span:nth-child(1){height:28%}
+        .orb-icon span:nth-child(2){height:72%}
+        .orb-icon span:nth-child(3){height:100%}
+        .orb-icon span:nth-child(4){height:50%}
+        .state-setup .orb-icon span{animation:bars 2s ease-in-out infinite}
+        .state-listening .orb-icon span{animation:bars .9s ease-in-out infinite}
+        .state-thinking .orb-icon span{animation:bars 1.4s ease-in-out infinite;background:var(--violet)}
+        .state-speaking .orb-icon span{animation:bars .55s ease-in-out infinite;background:var(--primary)}
+        .orb-icon span:nth-child(1){animation-delay:0s}
+        .orb-icon span:nth-child(2){animation-delay:.1s}
+        .orb-icon span:nth-child(3){animation-delay:.2s}
+        .orb-icon span:nth-child(4){animation-delay:.3s}
+        @keyframes bars{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}
+
+        .state-listening .orb{box-shadow:inset 0 -22px 32px rgba(16,185,129,.16),inset 0 18px 28px rgba(255,255,255,.55),0 18px 56px rgba(16,185,129,.18),0 0 0 1px rgba(16,185,129,.12)}
+        .state-thinking .orb{background:radial-gradient(circle at 35% 30%,#fff 0%,#ede9fe 35%,#ddd6fe 65%,#c4b5fd 100%);box-shadow:inset 0 -22px 32px rgba(139,92,246,.22),inset 0 18px 28px rgba(255,255,255,.55),0 18px 56px rgba(139,92,246,.22),0 0 0 1px rgba(139,92,246,.14)}
+        .state-speaking .orb{box-shadow:inset 0 -22px 32px rgba(79,70,229,.22),inset 0 18px 28px rgba(255,255,255,.55),0 18px 56px rgba(79,70,229,.22),0 0 0 1px rgba(79,70,229,.14)}
+
+        /* Waves below orb */
+        .wave-zone{display:flex;flex-direction:column;align-items:center;gap:8px;width:min(540px,90%)}
+        .waveform-wrap{width:100%;height:60px;opacity:.95}
+        .waveform-wrap canvas{width:100%;height:100%}
+        .silence-track{width:min(220px,60%);height:3px;background:#eef2ff;border-radius:3px;overflow:hidden}
+        .silence-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--primary),var(--violet));border-radius:3px;transition:width 80ms linear}
+
+        /* Status pill + transcript */
+        .status-block{display:flex;flex-direction:column;align-items:center;gap:14px;max-width:min(620px,92%);text-align:center}
+        .status-pill{
+            display:inline-flex;align-items:center;gap:10px;
+            padding:8px 18px;background:var(--primary-soft);
+            border:1px solid var(--primary-light);border-radius:999px;
+            font-size:.85rem;font-weight:500;color:var(--primary);
+        }
+        .status-pill .pdot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0;animation:pdotP 1.4s ease-in-out infinite}
+        @keyframes pdotP{50%{opacity:.4}}
+        .state-setup .status-pill{background:var(--surface-2);border-color:var(--border);color:var(--text-dim)}
+        .state-listening .status-pill{background:var(--green-light);border-color:rgba(16,185,129,.18);color:var(--green)}
+        .state-thinking .status-pill{background:var(--violet-light);border-color:rgba(139,92,246,.18);color:var(--violet)}
+        .state-speaking .status-pill{background:var(--primary-light);border-color:rgba(79,70,229,.18);color:var(--primary)}
+        .transcript{font-size:1.1rem;color:var(--text);line-height:1.45;font-style:italic;font-weight:400;min-height:1em;word-wrap:break-word;padding:0 12px}
+        .transcript:empty{display:none}
+
+        /* ───────── RIGHT PANEL ───────── */
+        .panel{
+            grid-area:panel;
+            background:var(--surface);border:1px solid var(--border);border-radius:16px;
+            box-shadow:var(--shadow-sm);
+            overflow-y:auto;padding:22px;
+            display:flex;flex-direction:column;gap:16px;z-index:4;
+        }
+        .panel::-webkit-scrollbar{width:6px}
+        .panel::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:6px}
+
+        .panel-head{
+            display:flex;align-items:center;justify-content:space-between;
+            font-size:.78rem;font-weight:700;color:var(--text);
+            text-transform:uppercase;letter-spacing:.16em;
+            padding-bottom:14px;border-bottom:1px solid var(--border-soft);margin-bottom:2px;
+        }
+        .panel-close{display:none;background:transparent;border:none;color:var(--text-dim);cursor:pointer;
+            width:28px;height:28px;border-radius:6px;font-size:1.1rem;line-height:1;
+        }
+        .panel-close:hover{background:var(--surface-2);color:var(--text)}
+        .panel-min{background:transparent;border:none;color:var(--text-faint);font-size:1.2rem;line-height:1;padding:4px 8px;border-radius:6px;cursor:default}
+
+        .p-row{display:flex;gap:14px;padding:8px 0;border-bottom:1px solid var(--border-soft)}
+        .p-row:last-child{border-bottom:none}
+        .p-icon{
+            flex:0 0 36px;width:36px;height:36px;border-radius:10px;
+            background:var(--primary-soft);color:var(--primary);
+            display:flex;align-items:center;justify-content:center;flex-shrink:0;
+        }
+        .p-icon svg{width:18px;height:18px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+        .p-body{flex:1;display:flex;flex-direction:column;gap:8px;min-width:0}
+        .p-label{font-size:.7rem;font-weight:600;color:var(--text-dim);letter-spacing:.12em;text-transform:uppercase}
+        .p-vals{display:flex;justify-content:space-between;align-items:center;gap:6px}
+        .p-vals .v{font-family:var(--mono);font-size:.92rem;color:var(--text);font-variant-numeric:tabular-nums;font-weight:600}
+
+        /* Inputs */
+        select.p-input{
+            background:var(--surface);color:var(--text);
+            border:1px solid var(--border-strong);border-radius:var(--radius-sm);
+            padding:9px 12px;font-family:inherit;font-size:.9rem;width:100%;cursor:pointer;
+            transition:border-color .15s,box-shadow .15s;
+            background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.6' fill='none' stroke-linecap='round'/></svg>");
+            background-repeat:no-repeat;background-position:right 12px center;
+            appearance:none;-webkit-appearance:none;padding-right:34px;
+        }
+        select.p-input:hover{border-color:var(--primary-hover)}
+        select.p-input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.12)}
+        select.p-input option,select.p-input optgroup{background:var(--surface);color:var(--text)}
+
+        input[type=range].p-input{
+            -webkit-appearance:none;appearance:none;
+            height:6px;background:#eef0f3;border-radius:6px;width:100%;outline:none;
+            background-image:linear-gradient(var(--primary),var(--primary));
+            background-repeat:no-repeat;
+        }
+        input[type=range].p-input::-webkit-slider-thumb{
+            -webkit-appearance:none;width:18px;height:18px;border-radius:50%;
+            background:#fff;cursor:pointer;border:2px solid var(--primary);
+            box-shadow:0 2px 6px rgba(15,23,42,.18);
+            transition:transform .15s;
+        }
+        input[type=range].p-input::-webkit-slider-thumb:active{transform:scale(1.16)}
+        input[type=range].p-input::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#fff;cursor:pointer;border:2px solid var(--primary);box-shadow:0 2px 6px rgba(15,23,42,.18)}
+        .range-labels{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.7rem;color:var(--text-faint);font-variant-numeric:tabular-nums}
+
+        .voice-row{display:flex;gap:8px;align-items:center}
+        .voice-row select.p-input{flex:1}
+        .voice-test{
+            flex:0 0 auto;
+            background:var(--primary);color:#fff;border:none;border-radius:var(--radius-sm);
+            padding:9px 14px;font-family:inherit;font-size:.82rem;font-weight:600;
+            cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;
+            box-shadow:0 2px 6px rgba(79,70,229,.25);
+            transition:all .15s;
+        }
+        .voice-test:hover{background:var(--primary-hover);transform:translateY(-1px);box-shadow:0 4px 10px rgba(79,70,229,.32)}
+        .voice-test:active{transform:translateY(0)}
+        .voice-test:disabled{opacity:.6;cursor:wait;transform:none}
+        .voice-test svg{width:11px;height:11px;fill:currentColor;stroke:none}
+
+        /* Mic level bar meter — colorful gradient bars */
+        .level-bar{
+            display:flex;gap:2px;height:18px;align-items:flex-end;
+            padding:0;
+        }
+        .level-bar .lb{
+            flex:1;background:#eef0f3;border-radius:1px;height:100%;
+            transition:background .08s;
+        }
+        .level-bar .lb.lit-0{background:var(--green)}
+        .level-bar .lb.lit-1{background:#22c55e}
+        .level-bar .lb.lit-2{background:#84cc16}
+        .level-bar .lb.lit-3{background:#a3e635}
+        .level-bar .lb.lit-4{background:#facc15}
+        .level-bar .lb.lit-5{background:#f59e0b}
+        .level-bar .lb.lit-6{background:#fb923c}
+        .level-bar .lb.lit-7{background:#ef4444}
+        .meter-thresh-wrap{position:relative}
+        .meter-thresh{position:absolute;top:-3px;height:24px;width:2px;background:var(--rose);border-radius:2px;pointer-events:none}
+
+        /* Noise floor row */
+        .nf-line{display:flex;align-items:center;justify-content:space-between;gap:10px}
+        .nf-val{font-family:var(--mono);font-size:.82rem;color:var(--primary);font-variant-numeric:tabular-nums}
+        .recal-btn{
+            background:transparent;color:var(--primary);
+            border:1px solid var(--primary);border-radius:8px;
+            padding:6px 12px;font-family:inherit;font-size:.72rem;font-weight:600;
+            cursor:pointer;letter-spacing:.08em;
+            transition:all .15s;
+        }
+        .recal-btn:hover{background:var(--primary);color:#fff}
+
+        /* Tip card */
+        .tip-card{
+            display:flex;gap:12px;align-items:flex-start;
+            padding:14px;background:var(--primary-soft);
+            border:1px solid var(--primary-light);border-radius:var(--radius);
+            margin-top:8px;
+        }
+        .tip-card .tip-ic{flex-shrink:0;width:18px;height:18px;color:var(--yellow);margin-top:1px}
+        .tip-card .tip-ic svg{width:100%;height:100%;fill:currentColor}
+        .tip-card .tip-body{font-size:.82rem;line-height:1.5;color:var(--text)}
+        .tip-card .tip-body strong{display:block;font-weight:600;margin-bottom:2px}
+        .tip-card .tip-body p{color:var(--text-dim);font-weight:400}
+
+        /* Backdrop */
+        .backdrop{position:fixed;inset:0;background:rgba(15,23,42,.4);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .25s;z-index:40}
+        .backdrop.open{opacity:1;pointer-events:auto}
+
+        /* Mobile noise-floor pill */
+        .nf-mobile{display:none}
+
+        /* Toast */
+        .toast{
+            position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(8px);
+            background:var(--surface);border:1px solid var(--border);
+            color:var(--text);padding:11px 22px;border-radius:999px;
+            font-size:.85rem;font-weight:500;
+            opacity:0;transition:all .25s;pointer-events:none;z-index:60;
+            box-shadow:var(--shadow-lg);
+        }
+        .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+        .toast.err{border-color:rgba(239,68,68,.4);color:var(--red)}
+        .toast.ok{border-color:rgba(79,70,229,.3);color:var(--primary)}
+
+        /* ───────── MOBILE ───────── */
+        @media (max-width: 880px){
+            body{grid-template-columns:1fr;grid-template-rows:auto 1fr;grid-template-areas:"topbar" "main";padding:10px;gap:10px}
+            .title-block{display:none}
+            .panel{
+                position:fixed;top:0;right:0;bottom:0;width:min(88%,360px);
+                transform:translateX(102%);transition:transform .32s cubic-bezier(.22,.8,.36,1);
+                z-index:50;border-radius:0;border-right:none;
+                padding:20px 18px 28px;height:100dvh;
+            }
+            .panel.open{transform:translateX(0);box-shadow:-20px 0 60px rgba(15,23,42,.18)}
+            .panel-close{display:inline-flex;align-items:center;justify-content:center}
+            .panel-min{display:none}
+            .hamburger{display:inline-flex}
+
+            .main{padding:24px 18px 22px;gap:14px;border-radius:14px}
+            .orb-area{width:100%;height:320px}
+            .orb{width:130px;height:130px}
+            .orb-icon{height:32px}
+            .transcript{font-size:.98rem}
+            .status-pill{font-size:.8rem}
+
+            /* Pinned noise-floor pill */
+            .nf-mobile{
+                display:flex;position:absolute;bottom:14px;left:18px;right:18px;
+                align-items:center;justify-content:center;gap:10px;
+                padding:9px 16px;background:var(--surface-2);
+                border:1px solid var(--border-soft);border-radius:999px;
+                font-family:var(--mono);font-size:.74rem;color:var(--text-dim);
+                font-variant-numeric:tabular-nums;letter-spacing:.02em;z-index:3;
+            }
+            .nf-mobile .nf-v{color:var(--primary)}
+            .nf-mobile .dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px var(--green-light)}
+        }
+        @media (max-height: 640px) and (max-width: 880px){
+            .orb-area{height:240px}
+            .orb{width:108px;height:108px}
+            .main{gap:10px;padding-bottom:54px}
+            .transcript{font-size:.9rem}
+        }
+        @media (max-width: 400px){
+            .topbar{gap:8px}
+            .tokens{padding:10px 12px;gap:10px}
+            .tokens .sub{display:none}
+        }
+    </style>
+</head>
+<body>
+
+<header class="topbar">
+    <div class="brand-card" title="Voice Agent">
+        <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/>
+        </svg>
+    </div>
+    <div class="tokens" title="LLM token usage this session">
+        <span class="lbl">Tokens</span>
+        <span class="val" id="tokenTotal">0</span>
+        <span class="sub" id="tokenBreak"><span class="in">0 in</span> / <span class="out">0 out</span></span>
+    </div>
+    <div class="title-block">
+        Voice Agent · Live
+        <span class="live-dot"></span>
+    </div>
+    <button class="hamburger" id="hamburgerBtn" aria-label="Open settings">
+        <svg viewBox="0 0 24 24"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+    </button>
+</header>
+
+<div class="backdrop" id="backdrop"></div>
+
+<main class="main">
+    <div class="orb-area state-setup" id="orbArea" onclick="handleTap()">
+        <canvas class="rings-canvas" id="ringsCanvas"></canvas>
+        <div class="orb">
+            <div class="orb-icon"><span></span><span></span><span></span><span></span></div>
+        </div>
+    </div>
+
+    <div class="wave-zone">
+        <div class="waveform-wrap"><canvas id="waveCanvas"></canvas></div>
+        <div class="silence-track"><div class="silence-fill" id="silFill"></div></div>
+    </div>
+
+    <div class="status-block">
+        <div class="status-pill" id="statusPill">
+            <span class="pdot"></span>
+            <span id="sMain">Tap to start</span>
+        </div>
+        <p class="transcript" id="sTranscript"></p>
+    </div>
+
+    <div class="nf-mobile">
+        <span class="dot"></span>
+        <span>Noise</span>
+        <span class="nf-v" id="nfMobileVal">— tap to calibrate</span>
+    </div>
+</main>
+
+<aside class="panel" id="panel">
+    <div class="panel-head">
+        Settings
+        <button class="panel-close" id="panelClose" aria-label="Close">✕</button>
+        <span class="panel-min">—</span>
+    </div>
+
+    <div class="p-row">
+        <div class="p-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
+        <div class="p-body">
+            <span class="p-label">Language</span>
+            <select class="p-input" id="langSelect">
+                <option value="en-IN" selected>English</option>
+                <option value="hi-IN">Hindi (हिन्दी)</option>
+                <option value="mr-IN">Marathi (मराठी)</option>
+                <option value="ta-IN">Tamil (தமிழ்)</option>
+                <option value="te-IN">Telugu (తెలుగు)</option>
+                <option value="kn-IN">Kannada (ಕನ್ನಡ)</option>
+                <option value="ml-IN">Malayalam (മലയാളം)</option>
+                <option value="gu-IN">Gujarati (ગુજરાતી)</option>
+                <option value="bn-IN">Bengali (বাংলা)</option>
+                <option value="pa-IN">Punjabi (ਪੰਜਾਬੀ)</option>
+                <option value="od-IN">Odia (ଓଡ଼ିଆ)</option>
+                <option value="">Auto-detect</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="p-row">
+        <div class="p-icon"><svg viewBox="0 0 24 24"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg></div>
+        <div class="p-body">
+            <span class="p-label">Voice</span>
+            <div class="voice-row">
+                <select class="p-input" id="voiceSelect">
+                    <optgroup label="Male">
+                        <option value="shubh" selected>Shubh</option>
+                        <option value="aditya">Aditya</option>
+                        <option value="rahul">Rahul</option>
+                        <option value="rohan">Rohan</option>
+                        <option value="amit">Amit</option>
+                        <option value="dev">Dev</option>
+                        <option value="ratan">Ratan</option>
+                        <option value="varun">Varun</option>
+                        <option value="manan">Manan</option>
+                        <option value="sumit">Sumit</option>
+                        <option value="kabir">Kabir</option>
+                        <option value="aayan">Aayan</option>
+                        <option value="ashutosh">Ashutosh</option>
+                        <option value="advait">Advait</option>
+                        <option value="anand">Anand</option>
+                        <option value="tarun">Tarun</option>
+                        <option value="sunny">Sunny</option>
+                        <option value="mani">Mani</option>
+                        <option value="gokul">Gokul</option>
+                        <option value="vijay">Vijay</option>
+                        <option value="mohit">Mohit</option>
+                        <option value="rehan">Rehan</option>
+                        <option value="soham">Soham</option>
+                    </optgroup>
+                    <optgroup label="Female">
+                        <option value="ritu">Ritu</option>
+                        <option value="priya">Priya</option>
+                        <option value="neha">Neha</option>
+                        <option value="pooja">Pooja</option>
+                        <option value="simran">Simran</option>
+                        <option value="kavya">Kavya</option>
+                        <option value="ishita">Ishita</option>
+                        <option value="shreya">Shreya</option>
+                        <option value="roopa">Roopa</option>
+                        <option value="amelia">Amelia</option>
+                        <option value="sophia">Sophia</option>
+                        <option value="tanya">Tanya</option>
+                        <option value="shruti">Shruti</option>
+                        <option value="suhani">Suhani</option>
+                        <option value="kavitha">Kavitha</option>
+                        <option value="rupali">Rupali</option>
+                    </optgroup>
+                </select>
+                <button class="voice-test" id="voiceTestBtn" title="Hear a sample">
+                    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    Test
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="p-row">
+        <div class="p-icon"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></div>
+        <div class="p-body">
+            <div class="p-vals"><span class="p-label">Sensitivity</span><span class="v" id="sensValue">5</span></div>
+            <input type="range" class="p-input" id="sensSlider" min="1" max="10" step="1" value="5">
+            <div class="range-labels"><span>1</span><span>10</span></div>
+        </div>
+    </div>
+
+    <div class="p-row">
+        <div class="p-icon"><svg viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg></div>
+        <div class="p-body">
+            <div class="p-vals"><span class="p-label">Pause</span><span class="v" id="pauseValue">0.50s</span></div>
+            <input type="range" class="p-input" id="pauseSlider" min="300" max="2000" step="50" value="500">
+            <div class="range-labels"><span>0.3s</span><span>2.0s</span></div>
+        </div>
+    </div>
+
+    <div class="p-row">
+        <div class="p-icon"><svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg></div>
+        <div class="p-body">
+            <div class="p-vals"><span class="p-label">Volume</span><span class="v" id="volValue">75%</span></div>
+            <input type="range" class="p-input" id="volSlider" min="10" max="120" step="5" value="75">
+            <div class="range-labels"><span>0%</span><span>120%</span></div>
+        </div>
+    </div>
+
+    <div class="p-row">
+        <div class="p-icon"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg></div>
+        <div class="p-body">
+            <span class="p-label">Mic Level</span>
+            <div class="meter-thresh-wrap">
+                <div class="level-bar" id="levelBar"></div>
+                <div class="meter-thresh" id="meterThresh"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="p-row">
+        <div class="p-icon"><svg viewBox="0 0 24 24"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg></div>
+        <div class="p-body">
+            <div class="nf-line">
+                <span class="p-label">Noise Floor</span>
+                <button class="recal-btn" id="recalBtn">Recal</button>
+            </div>
+            <span class="nf-val" id="noiseFloorVal">— tap to calibrate</span>
+        </div>
+    </div>
+
+    <div class="tip-card">
+        <div class="tip-ic"><svg viewBox="0 0 24 24"><path d="M12 2l1.7 4.6L18 8l-4 3 1 5-3-2.5L9 16l1-5-4-3 4.3-1.4z"/></svg></div>
+        <div class="tip-body">
+            <strong>Tip</strong>
+            <p>Adjust sensitivity and pause to match your environment for best results.</p>
+        </div>
+    </div>
+</aside>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  Vercel-edge HTTP pipeline:
+//  MediaRecorder → POST /api/turn (multipart) → NDJSON stream
+//  events: transcript_final · audio (b64 WAV) · usage · done · error
+// ═══════════════════════════════════════════════
+
+const API_TURN = '/api/turn';
+const API_PREVIEW = '/api/voice-preview';
+
+let SENSITIVITY=5, SILENCE_MS=500;
+function getSNR(){return 5.0-(SENSITIVITY-1)*0.389}
+const MIN_SPEECH_THRESH=0.012;
+let noiseFloor=0.005;
+function getSpeechThresh(){return Math.max(MIN_SPEECH_THRESH, noiseFloor*getSNR())}
+function getSilenceThresh(){return Math.max(noiseFloor*1.4, getSpeechThresh()*0.5)}
+
+let micInitialized=false,micReady=false,calibrating=false;
+let audioCtx=null,analyser=null,micStream=null;
+let convoActive=false,agentSpeaking=false,userSpeaking=false,processing=false;
+let playingChunk=false;
+let animId=null;
+let totalTokens=0,sessionPrompt=0,sessionCompletion=0;
+let playbackComp=null,playbackGain=null,playbackAnalyser=null,scheduledSources=[],nextStartTime=0;
+let masterVolume=0.75;
+// MediaRecorder for capturing each user utterance
+let mediaRec=null, mediaChunks=[], currentAbort=null;
+
+const $=id=>document.getElementById(id);
+const $area=$('orbArea'),$main=$('sMain'),$transcript=$('sTranscript'),$pill=$('statusPill');
+const $canvas=$('waveCanvas'),cctx=$canvas.getContext('2d');
+const $ringsCanvas=$('ringsCanvas'),rctx=$ringsCanvas.getContext('2d');
+const $sil=$('silFill'),$toast=$('toast');
+const $ss=$('sensSlider'),$sv=$('sensValue'),$ps=$('pauseSlider'),$pv=$('pauseValue'),$lang=$('langSelect'),$voice=$('voiceSelect');
+const $nf=$('noiseFloorVal'),$recal=$('recalBtn'),$nfMobile=$('nfMobileVal');
+const $tokTotal=$('tokenTotal'),$tokBreak=$('tokenBreak');
+const $voiceTest=$('voiceTestBtn'),$panel=$('panel'),$ham=$('hamburgerBtn'),$panelClose=$('panelClose'),$backdrop=$('backdrop');
+const $vol=$('volSlider'),$volV=$('volValue');
+const $levelBar=$('levelBar'),$mt=$('meterThresh');
+
+// ── Build mic level meter bars (32 segments) ──
+const LEVEL_SEGMENTS=32;
+for(let i=0;i<LEVEL_SEGMENTS;i++){const d=document.createElement('div');d.className='lb';$levelBar.appendChild(d)}
+const $lbItems=$levelBar.querySelectorAll('.lb');
+function colorClassForSegment(i){
+    // 0–14 green family, 15–22 yellow, 23–31 red
+    if(i<6)return 'lit-0';
+    if(i<10)return 'lit-1';
+    if(i<14)return 'lit-2';
+    if(i<18)return 'lit-3';
+    if(i<22)return 'lit-4';
+    if(i<25)return 'lit-5';
+    if(i<28)return 'lit-6';
+    return 'lit-7';
+}
+
+// ── Slider events ──
+function setRangeBg(el){
+    const min=+el.min,max=+el.max,v=+el.value;
+    const pct=((v-min)/(max-min))*100;
+    el.style.backgroundSize=pct+'% 100%';
+}
+function wireRange(el){setRangeBg(el);el.addEventListener('input',()=>setRangeBg(el))}
+wireRange($ss);wireRange($ps);wireRange($vol);
+
+$ss.addEventListener('input',()=>{SENSITIVITY=+$ss.value;$sv.textContent=SENSITIVITY;updMT();updNF()});
+$ps.addEventListener('input',()=>{SILENCE_MS=+$ps.value;$pv.textContent=(SILENCE_MS/1000).toFixed(2)+'s'});
+$vol.addEventListener('input',()=>{
+    masterVolume=(+$vol.value)/100;
+    $volV.textContent=$vol.value+'%';
+    if(playbackGain)playbackGain.gain.setTargetAtTime(masterVolume,audioCtx.currentTime,0.02);
+});
+$voice.addEventListener('change',()=>{
+    toast('Voice → '+$voice.options[$voice.selectedIndex].textContent,'ok');
+});
+$recal.addEventListener('click',()=>{if(micReady&&!agentSpeaking)calibrateNoise()});
+
+// ── Hamburger / drawer ──
+function openPanel(){$panel.classList.add('open');$backdrop.classList.add('open')}
+function closePanel(){$panel.classList.remove('open');$backdrop.classList.remove('open')}
+$ham.addEventListener('click',openPanel);
+$panelClose.addEventListener('click',closePanel);
+$backdrop.addEventListener('click',closePanel);
+
+// ── Voice test ──
+let testAudio=null;
+$voiceTest.addEventListener('click',async()=>{
+    if(testAudio){try{testAudio.pause()}catch(_){}testAudio=null}
+    $voiceTest.disabled=true;
+    const orig=$voiceTest.innerHTML;
+    $voiceTest.innerHTML='<span>Loading…</span>';
+    try{
+        const lang=$lang.value||'en-IN';
+        const url=`${API_PREVIEW}?voice=${encodeURIComponent($voice.value)}&language=${encodeURIComponent(lang)}`;
+        const res=await fetch(url);
+        if(!res.ok)throw new Error('preview failed');
+        const blob=await res.blob();
+        testAudio=new Audio(URL.createObjectURL(blob));
+        testAudio.volume=Math.min(1,masterVolume);
+        testAudio.onended=()=>{$voiceTest.disabled=false;$voiceTest.innerHTML=orig;URL.revokeObjectURL(testAudio.src);testAudio=null};
+        testAudio.onerror=testAudio.onended;
+        testAudio.play();
+    }catch(e){toast('Preview failed','err');$voiceTest.disabled=false;$voiceTest.innerHTML=orig}
+});
+
+function updMT(){const pct=Math.min(getSpeechThresh()/0.15*100,100);$mt.style.left=pct+'%'}
+function updNF(){const s=`floor ${noiseFloor.toFixed(4)} · trig ${getSpeechThresh().toFixed(4)}`;$nf.textContent=s;if($nfMobile)$nfMobile.textContent=s}
+function updTokens(){
+    $tokTotal.textContent=totalTokens.toLocaleString();
+    $tokBreak.innerHTML=`<span class="in">${sessionPrompt} in</span> / <span class="out">${sessionCompletion} out</span>`;
+}
+updMT();updTokens();
+
+// Live meter bar updater
+function startMeter(){(function t(){
+    const l=getRMS();
+    const litCount=Math.round(Math.min(l/0.15,1)*LEVEL_SEGMENTS);
+    for(let i=0;i<LEVEL_SEGMENTS;i++){
+        $lbItems[i].className='lb';
+        if(i<litCount)$lbItems[i].classList.add(colorClassForSegment(i));
+    }
+    requestAnimationFrame(t);
+})()}
+
+function setState(s){
+    $area.className='orb-area state-'+s;
+    const m={setup:'Tap to start',listening:'Listening',thinking:'Thinking…',speaking:'Responding'};
+    if(m[s])$main.textContent=m[s];
+}
+function toast(m,kind){
+    $toast.textContent=m;
+    $toast.classList.remove('err','ok');
+    if(kind==='err')$toast.classList.add('err');
+    else if(kind==='ok')$toast.classList.add('ok');
+    $toast.classList.add('show');
+    setTimeout(()=>$toast.classList.remove('show'),3200);
+}
+
+async function initMic(){
+    if(micReady)return true;
+    try{
+        if(!audioCtx||audioCtx.state==='closed')audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+        if(audioCtx.state==='suspended')await audioCtx.resume();
+        micStream=await navigator.mediaDevices.getUserMedia({audio:{
+            echoCancellation:true,noiseSuppression:true,autoGainControl:false,
+            channelCount:1,sampleRate:48000
+        }});
+        const src=audioCtx.createMediaStreamSource(micStream);
+        const hp=audioCtx.createBiquadFilter();hp.type='highpass';hp.frequency.value=120;hp.Q.value=0.7;
+        const lp=audioCtx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=4000;lp.Q.value=0.7;
+        analyser=audioCtx.createAnalyser();analyser.fftSize=2048;analyser.smoothingTimeConstant=0.85;
+        src.connect(hp);hp.connect(lp);lp.connect(analyser);
+        // Keep graph alive across browsers with a muted gain → destination
+        const sink=audioCtx.createGain();sink.gain.value=0;
+        lp.connect(sink);sink.connect(audioCtx.destination);
+        micReady=true;micInitialized=true;startMeter();startRings();
+        await calibrateNoise();
+        return true;
+    }catch(e){console.error(e);toast('Mic denied — please allow and reload','err');return false}
+}
+
+// muteWorklet is a no-op now (left as alias for clarity in playback code)
+function muteWorklet(){}
+
+async function calibrateNoise(){
+    if(!analyser||calibrating)return;
+    calibrating=true;
+    $main.textContent='Calibrating…';
+    const samples=[],t0=Date.now();
+    while(Date.now()-t0<1200){samples.push(getRMS());await new Promise(r=>setTimeout(r,30))}
+    samples.sort((a,b)=>a-b);
+    const med=samples[Math.floor(samples.length/2)];
+    const inliers=samples.filter(v=>v<med*2.5);
+    const mean=inliers.reduce((a,b)=>a+b,0)/inliers.length;
+    const variance=inliers.reduce((a,b)=>a+(b-mean)**2,0)/inliers.length;
+    noiseFloor=Math.max(0.003, mean + 1.5*Math.sqrt(variance));
+    updNF();updMT();
+    calibrating=false;
+    if(!convoActive){$main.textContent='Tap to start'}
+}
+
+// ── Rings canvas (audio-reactive, centered, no rotation) ──
+let ringsAnimId=null,ringsSize={w:0,h:0};
+function initRingsCanvas(){
+    const d=devicePixelRatio||1,r=$ringsCanvas.getBoundingClientRect();
+    if(r.width===0||r.height===0)return;
+    $ringsCanvas.width=r.width*d;$ringsCanvas.height=r.height*d;
+    rctx.setTransform(1,0,0,1,0,0);rctx.scale(d,d);
+    ringsSize.w=r.width;ringsSize.h=r.height;
+}
+// Rings as vibrating strings — each is the live time-domain audio waveform
+// wrapped around it. Sizes adapt to canvas dimensions so rings always form
+// closed loops inside the visible area without clipping.
+const RING_COUNT=9;
+const RING_POINTS=220;
+const ORB_R=80;
+const ORB_SAFE_GAP=14;
+const AMP_X_MAX=10;   // largest horizontal swing of any ring
+const AMP_Y_MAX=6;
+const WARP_MAX=0.07;  // organic warp factor (1 ± 7%)
+
+const ringSeed=[];
+for(let i=0;i<RING_COUNT;i++){
+    const s1=(i*7919+13)%997/997;
+    const s2=(i*4933+71)%983/983;
+    const s3=(i*5419+29)%991/991;
+    const s4=(i*6113+47)%977/977;
+    ringSeed.push({
+        sampleOffset:Math.floor(s1*1800),
+        wfX:2+Math.floor(s1*4),
+        wfY:3+Math.floor(s2*4),
+        phaseX:s1*Math.PI*2,
+        phaseY:s2*Math.PI*2,
+        rotateBase:(s1-0.5)*0.20,
+        rxJitter:1+(s1-0.5)*0.06,
+        ryJitter:1+(s2-0.5)*0.06,
+        // ── continuous slow random motion ──
+        // Each ring morphs its shape at its own rate
+        driftX:0.10+s3*0.18,          // 0.10–0.28 rad/sec — shape morph speed
+        driftY:0.08+s4*0.16,
+        // Slow base-radius breathing (gentle expand/contract)
+        breathRateX:0.05+s2*0.08,
+        breathRateY:0.04+s3*0.07,
+        breathAmpX:2+s3*3,            // 2–5 px breath
+        breathAmpY:1.5+s4*2.5,
+        // Tiny per-ring rotation — drifts barely perceptibly
+        rotSpeed:(s4-0.5)*0.04,       // -0.02 to +0.02 rad/sec
+    });
+}
+
+function drawRings(){
+    const src=(agentSpeaking&&playbackAnalyser)?playbackAnalyser:analyser;
+    if(!ringsSize.w){ringsAnimId=requestAnimationFrame(drawRings);return}
+    let buf=null,N=0;
+    if(src){N=src.fftSize;buf=new Uint8Array(N);src.getByteTimeDomainData(buf)}
+
+    const w=ringsSize.w,h=ringsSize.h;
+    rctx.clearRect(0,0,w,h);
+    const cx=w/2,cy=h/2;
+    const tNow=performance.now()*0.001;
+
+    // Reserve room for amplitude + warp + slow breathing so no ring ever hits canvas edge
+    const xReserve=(AMP_X_MAX)*(1+WARP_MAX) + 5 + 4;
+    const yReserve=(AMP_Y_MAX)*(1+WARP_MAX) + 4 + 4;
+    const maxRx=Math.max(ORB_R+ORB_SAFE_GAP+10, w/2 - xReserve);
+    const maxRy=Math.max(ORB_R+ORB_SAFE_GAP+6,  h/2 - yReserve);
+    // Inner ring starts just outside orb
+    const startRx=ORB_R+22;
+    const startRy=ORB_R+12;
+    const rxRange=Math.max(0, maxRx - startRx);
+    const ryRange=Math.max(0, maxRy - startRy);
+
+    for(let r=0;r<RING_COUNT;r++){
+        const p=ringSeed[r];
+        const tt=RING_COUNT===1?0:r/(RING_COUNT-1);
+        const tCurve=tt*0.55+tt*tt*0.45;
+        // Slow breathing modulation on base radii
+        const breathX=Math.sin(tNow*p.breathRateX+p.phaseX)*p.breathAmpX;
+        const breathY=Math.cos(tNow*p.breathRateY+p.phaseY)*p.breathAmpY;
+        const baseRx=(startRx + tCurve*rxRange)*p.rxJitter + breathX;
+        const baseRy=(startRy + tCurve*ryRange)*p.ryJitter + breathY;
+        const shrink=1 - r*0.06;
+        const ampX=AMP_X_MAX*shrink;
+        const ampY=AMP_Y_MAX*shrink;
+        // Per-ring continuous slow rotation (tiny — barely perceptible)
+        const ringRot=p.rotateBase + tNow*p.rotSpeed;
+        // Slowly drifting warp phases so each ring's shape morphs over time
+        const driftPhX=p.phaseX + tNow*p.driftX;
+        const driftPhY=p.phaseY + tNow*p.driftY;
+
+        const opacity=Math.max(0.05, 0.42-r*0.040);
+        let color;
+        if(r<2)      color=`rgba(79,70,229,${opacity})`;
+        else if(r<4) color=`rgba(99,102,241,${opacity})`;
+        else if(r<6) color=`rgba(139,92,246,${opacity})`;
+        else         color=`rgba(167,139,250,${opacity*.85})`;
+
+        const stride=buf?(N/RING_POINTS):0;
+        rctx.beginPath();
+        for(let i=0;i<=RING_POINTS;i++){
+            const angle=(i/RING_POINTS)*Math.PI*2 + ringRot;
+            let sample=0;
+            if(buf){
+                const idx=(p.sampleOffset+Math.floor(i*stride))%N;
+                sample=(buf[idx]-128)/128;
+            }
+            const ambient=Math.sin(angle+tNow*0.4+p.phaseX)*0.012;
+            const drive=sample+ambient;
+            let rx=baseRx + drive*ampX;
+            let ry=baseRy + drive*ampY;
+            rx=Math.min(maxRx, Math.max(ORB_R+ORB_SAFE_GAP, rx));
+            ry=Math.min(maxRy, Math.max(ORB_R+ORB_SAFE_GAP*0.7, ry));
+            // Drifting warp — shape morphs slowly while staying clipped
+            const warp=1 + Math.sin(angle*p.wfX+driftPhX)*WARP_MAX*0.55
+                       + Math.cos(angle*p.wfY+driftPhY)*WARP_MAX*0.45;
+            const x=cx+Math.cos(angle)*rx*warp;
+            const y=cy+Math.sin(angle)*ry*warp;
+            if(i===0)rctx.moveTo(x,y);else rctx.lineTo(x,y);
+        }
+        rctx.closePath();
+        rctx.lineWidth=r<3?1.3:(r<6?1.0:0.85);
+        rctx.strokeStyle=color;
+        rctx.stroke();
+    }
+    ringsAnimId=requestAnimationFrame(drawRings);
+}
+function startRings(){
+    if(ringsAnimId)return;
+    initRingsCanvas();
+    drawRings();
+}
+
+// ── Waveform canvas ──
+function initCanvas(){const d=devicePixelRatio||1,r=$canvas.getBoundingClientRect();$canvas.width=r.width*d;$canvas.height=r.height*d;cctx.scale(d,d)}
+function drawWave(){
+    if(!analyser){animId=null;return}
+    const N=analyser.frequencyBinCount,buf=new Uint8Array(N);analyser.getByteTimeDomainData(buf);
+    const w=$canvas.getBoundingClientRect().width,h=$canvas.getBoundingClientRect().height;cctx.clearRect(0,0,w,h);
+    // Build colored bars based on FFT magnitude (looks like the mockup wave)
+    cctx.beginPath();cctx.lineWidth=1.6;cctx.strokeStyle='rgba(79,70,229,.9)';cctx.lineCap='round';
+    let x=0,sw=w/N;
+    for(let i=0;i<N;i++){
+        const y=(buf[i]/128)*h/2;
+        i?cctx.lineTo(x,y):cctx.moveTo(x,y);
+        x+=sw;
+    }
+    cctx.stroke();
+    if(convoActive&&!agentSpeaking)animId=requestAnimationFrame(drawWave);else{animId=null;cctx.clearRect(0,0,w,h)}
+}
+function getRMS(){if(!analyser)return 0;const d=new Float32Array(analyser.fftSize);analyser.getFloatTimeDomainData(d);let s=0;for(let i=0;i<d.length;i++)s+=d[i]*d[i];return Math.sqrt(s/d.length)}
+
+// ── Playback (Web Audio: decode WAV → limiter → gain → speakers) ──
+function initPlaybackChain(){
+    if(playbackComp||!audioCtx)return;
+    playbackComp=audioCtx.createDynamicsCompressor();
+    playbackComp.threshold.value=-3;
+    playbackComp.knee.value=8;
+    playbackComp.ratio.value=8;
+    playbackComp.attack.value=0.003;
+    playbackComp.release.value=0.18;
+    playbackGain=audioCtx.createGain();
+    playbackGain.gain.value=masterVolume;
+    playbackAnalyser=audioCtx.createAnalyser();
+    playbackAnalyser.fftSize=2048;
+    playbackAnalyser.smoothingTimeConstant=0.7;
+    playbackComp.connect(playbackGain);
+    playbackGain.connect(playbackAnalyser);
+    playbackAnalyser.connect(audioCtx.destination);
+}
+
+async function enqueueAudioBytes(bytes){
+    if(!audioCtx)return;
+    initPlaybackChain();
+    let buf;
+    try{buf=await audioCtx.decodeAudioData(bytes.slice(0))}
+    catch(e){console.error('decode error',e);return}
+    if(scheduledSources.length===0){
+        playingChunk=true;agentSpeaking=true;
+        muteWorklet(true);stopLocalVAD();setState('speaking');
+        nextStartTime=audioCtx.currentTime+0.03;
+    }else if(nextStartTime<audioCtx.currentTime){
+        nextStartTime=audioCtx.currentTime+0.01;
+    }
+    const src=audioCtx.createBufferSource();
+    src.buffer=buf;
+    src.connect(playbackComp);
+    const startAt=nextStartTime;
+    src.start(startAt);
+    nextStartTime=startAt+buf.duration;
+    scheduledSources.push(src);
+    src.onended=()=>{
+        scheduledSources=scheduledSources.filter(s=>s!==src);
+        if(scheduledSources.length===0){
+            playingChunk=false;agentSpeaking=false;
+            muteWorklet(false);
+            if(convoActive){setState('listening');startLocalVAD();initCanvas();drawWave()}
+        }
+    };
+}
+
+function clearAudio(){
+    scheduledSources.forEach(s=>{try{s.stop()}catch(_){}});
+    scheduledSources=[];nextStartTime=0;
+    playingChunk=false;agentSpeaking=false;muteWorklet(false);
+}
+
+// ── Local VAD — drives MediaRecorder start/stop ──
+let vadId=null, silStart=0, speechFrames=0;
+const SPEECH_CONFIRM_LOCAL=3;
+const WAIT_FOR_SPEECH_MS=6000;
+const MIN_REC_MS=400, MAX_REC_MS=15000;
+let speechStartTime=0;
+
+function pickMimeType(){
+    const candidates=['audio/webm;codecs=opus','audio/webm','audio/mp4'];
+    for(const m of candidates) if(MediaRecorder.isTypeSupported(m)) return m;
+    return '';
+}
+
+function startRecording(){
+    if(mediaRec) return;
+    mediaChunks=[];
+    const mime=pickMimeType();
+    try{
+        mediaRec=new MediaRecorder(micStream, mime?{mimeType:mime}:{});
+    }catch(e){
+        console.error('MediaRecorder init failed', e);
+        toast('Recording not supported','err');
+        return;
+    }
+    mediaRec.ondataavailable=(e)=>{if(e.data && e.data.size>0) mediaChunks.push(e.data)};
+    mediaRec.start(100);
+    speechStartTime=Date.now();
+}
+
+function startLocalVAD(){
+    stopLocalVAD();
+    speechFrames=0; silStart=0; userSpeaking=false;
+    function tick(){
+        if(!convoActive||agentSpeaking||processing){vadId=null;return}
+        const rms=getRMS(), speechT=getSpeechThresh(), silenceT=getSilenceThresh();
+        if(!userSpeaking){
+            if(rms>=speechT){
+                speechFrames++;
+                if(speechFrames>=SPEECH_CONFIRM_LOCAL){
+                    userSpeaking=true; silStart=0;
+                    setState('listening'); $sil.style.width='0%';
+                    startRecording();
+                }
+            } else speechFrames=0;
+        } else {
+            const recElapsed=Date.now()-speechStartTime;
+            if(rms<silenceT){
+                if(!silStart) silStart=Date.now();
+                const ms=Date.now()-silStart;
+                $sil.style.width=Math.min(ms/SILENCE_MS*100,100)+'%';
+                if(ms>=SILENCE_MS && recElapsed>=MIN_REC_MS){
+                    userSpeaking=false; vadId=null; $sil.style.width='0%';
+                    setState('thinking');
+                    stopRecordingAndUpload();
+                    return;
+                }
+            } else { silStart=0; $sil.style.width='0%' }
+            if(recElapsed>=MAX_REC_MS){
+                userSpeaking=false; vadId=null; $sil.style.width='0%';
+                setState('thinking');
+                stopRecordingAndUpload();
+                return;
+            }
+        }
+        vadId=setTimeout(tick,40);
+    }
+    tick();
+}
+function stopLocalVAD(){if(vadId){clearTimeout(vadId);vadId=null}silStart=0;speechFrames=0;$sil.style.width='0%'}
+
+// ── Stop the recorder, build a Blob, POST it, stream NDJSON response ──
+async function stopRecordingAndUpload(){
+    if(!mediaRec){ resumeListening(); return; }
+    const rec=mediaRec; mediaRec=null;
+    let resolveStop;
+    const stopped=new Promise(r=>{resolveStop=r});
+    rec.onstop=()=>resolveStop();
+    if(rec.state!=='inactive'){ try{rec.stop()}catch(_){} } else { resolveStop(); }
+    await stopped;
+
+    const mime=rec.mimeType||'audio/webm';
+    const blob=new Blob(mediaChunks,{type:mime});
+    mediaChunks=[];
+    if(blob.size<800){ resumeListening(); return; }
+
+    const ext=mime.includes('mp4')?'mp4':mime.includes('webm')?'webm':'wav';
+    const fd=new FormData();
+    fd.append('audio', blob, `recording.${ext}`);
+    if($lang.value) fd.append('language', $lang.value);
+    if($voice.value) fd.append('voice', $voice.value);
+
+    processing=true;
+    currentAbort=new AbortController();
+    try{
+        const res=await fetch(API_TURN, {method:'POST', body:fd, signal:currentAbort.signal});
+        if(res.status===204){ processing=false; resumeListening(); return; }
+        if(!res.ok){
+            const errText=await res.text().catch(()=>'');
+            toast(`Server ${res.status}: ${errText.slice(0,80)}`,'err');
+            processing=false; resumeListening(); return;
+        }
+        const reader=res.body.getReader();
+        const dec=new TextDecoder();
+        let buf='';
+        let receivedAudio=false;
+        while(true){
+            const {value, done}=await reader.read();
+            if(done) break;
+            buf+=dec.decode(value,{stream:true});
+            let nl;
+            while((nl=buf.indexOf('\n'))>=0){
+                const line=buf.slice(0,nl).trim();
+                buf=buf.slice(nl+1);
+                if(!line) continue;
+                let ev; try{ ev=JSON.parse(line) }catch(_){ continue }
+                if(ev.type==='audio') receivedAudio=true;
+                handleStreamEvent(ev);
+            }
+        }
+        processing=false;
+        // If we never got any audio (e.g. STT empty), restart VAD ourselves;
+        // otherwise the playback queue's onended will resume.
+        if(!receivedAudio && scheduledSources.length===0) resumeListening();
+    }catch(e){
+        processing=false;
+        if(e && e.name!=='AbortError') toast('Network error','err');
+        resumeListening();
+    }finally{ currentAbort=null; }
+}
+
+function handleStreamEvent(ev){
+    switch(ev.type){
+        case 'transcript_final':
+            $transcript.textContent='"'+ev.text+'"'; break;
+        case 'audio':{
+            const bin=atob(ev.b64);
+            const arr=new Uint8Array(bin.length);
+            for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+            enqueueAudioBytes(arr.buffer);
+            break;
+        }
+        case 'usage':
+            sessionPrompt+=ev.prompt; sessionCompletion+=ev.completion; totalTokens+=ev.total;
+            updTokens(); break;
+        case 'done': break;
+        case 'error': toast('Server: '+ev.message,'err'); break;
+    }
+}
+
+function resumeListening(){
+    if(!convoActive) return;
+    setState('listening');
+    startLocalVAD();
+    initCanvas(); drawWave();
+}
+
+async function startConvo(){
+    if(convoActive) return;
+    convoActive=true;
+    $transcript.textContent='';
+    setState('listening');
+    startLocalVAD();
+    initCanvas(); drawWave();
+}
+
+function stopConvo(){
+    convoActive=false; stopLocalVAD(); clearAudio();
+    if(currentAbort){ try{currentAbort.abort()}catch(_){} currentAbort=null }
+    if(mediaRec && mediaRec.state!=='inactive'){ try{mediaRec.stop()}catch(_){} }
+    mediaRec=null; mediaChunks=[];
+    processing=false;
+    setState('setup');
+}
+
+async function handleTap(){
+    if(!micInitialized){ if(await initMic()) startConvo(); return; }
+    if(agentSpeaking){ clearAudio(); resumeListening(); return; }
+    if(processing){ if(currentAbort){try{currentAbort.abort()}catch(_){}} processing=false; resumeListening(); return; }
+    if(convoActive){ stopConvo(); return; }
+    startConvo();
+}
+document.addEventListener('keydown',e=>{if(e.code==='Space'&&e.target===document.body){e.preventDefault();handleTap()}});
+window.addEventListener('resize',()=>{if(animId)initCanvas();initRingsCanvas()});
+</script>
+</body>
+</html>

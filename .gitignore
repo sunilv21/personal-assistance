@@ -1,0 +1,38 @@
+# Secrets
+.env
+.env.local
+.env.*.local
+.env.production
+*.pem
+
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+
+# Build / OS
+.vercel/
+.next/
+.cache/
+dist/
+build/
+.DS_Store
+Thumbs.db
+
+# IDE / local tooling
+.vscode/
+.idea/
+.claude/
+*.swp
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
