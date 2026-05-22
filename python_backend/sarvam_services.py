@@ -1,7 +1,7 @@
 import httpx
 import base64
 import time
-from config import settings
+from .config import settings
 
 # ── Persistent HTTP client with connection pooling (reuses TCP connections) ──
 _client = httpx.Client(timeout=20, limits=httpx.Limits(max_connections=10, max_keepalive_connections=5))

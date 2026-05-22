@@ -1,5 +1,6 @@
-# Legacy Python backend (kept for local dev only — not deployed to Vercel)
-python-backend/
+# Local Python backend (not deployed to Vercel)
+python_backend/
+main.py
 __pycache__/
 *.pyc
 .venv/

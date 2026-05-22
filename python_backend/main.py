@@ -1,10 +1,10 @@
 from fastapi import FastAPI, UploadFile, File, Form, WebSocket, WebSocketDisconnect
 from fastapi.responses import Response, FileResponse, StreamingResponse
-from sarvam_services import sarvam_stt, sarvam_tts
-from sarvam_stream import SarvamSTTStream
-from llm_service import generate_response, stream_response
-from memory import add_to_memory, get_memory
-from config import settings
+from .sarvam_services import sarvam_stt, sarvam_tts
+from .sarvam_stream import SarvamSTTStream
+from .llm_service import generate_response, stream_response
+from .memory import add_to_memory, get_memory
+from .config import settings
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
 import os, sys, time, json, base64, re

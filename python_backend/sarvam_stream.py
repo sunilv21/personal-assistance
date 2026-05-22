@@ -22,7 +22,7 @@ from urllib.parse import urlencode
 
 import websockets
 
-from config import settings
+from .config import settings
 
 SARVAM_WS_URL = "wss://api.sarvam.ai/speech-to-text/ws"
 

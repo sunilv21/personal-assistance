@@ -376,20 +376,18 @@ This runs the same TypeScript Edge functions locally — identical behavior to p
 
 ## Local development (Python)
 
-The Python backend lives in [`python-backend/`](python-backend/) and mirrors the same HTTP API (`/api/turn`, `/api/voice-preview`, `/api/health`) **plus** a `/ws` endpoint for true low-latency streaming STT.
+The Python backend lives in [`python_backend/`](python_backend/) and mirrors the same HTTP API (`/api/turn`, `/api/voice-preview`, `/api/health`) **plus** a `/ws` endpoint for true low-latency streaming STT.
 
 ```powershell
-# 1. Move into the backend folder
-cd python-backend
+# 1. Install deps (do this in the project root)
+pip install -r python_backend/requirements.txt
 
-# 2. Install deps
-pip install -r requirements.txt
-
-# 3. Create .env with your keys (copy from ../.env.example, or use the root .env)
-copy ..\.env.example .env
+# 2. Set up .env in the project root (one place, both backends read it)
+copy .env.example .env
 notepad .env
 
-# 4. Run with auto-reload — note the index.html path
+# 3. Run from the project root — the root main.py is a shim that imports
+#    the real app from python_backend/main.py
 python -m uvicorn main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
@@ -512,7 +510,8 @@ The **Test** button next to Voice plays a short sample of the chosen voice in th
 │
 ├── index.html                            # Single-file frontend (no build step)
 │
-├── python-backend/                       # Local dev backend (excluded from Vercel deploy)
+├── main.py                                # Root shim — `uvicorn main:app` from project root
+├── python_backend/                       # Local dev backend (excluded from Vercel deploy)
 │   ├── main.py                            # FastAPI app
 │   ├── llm_service.py                     # OpenAI streaming + token usage
 │   ├── sarvam_services.py                 # Sarvam STT + TTS REST clients

@@ -1,7 +1,9 @@
 import os
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 
-load_dotenv(override=True)
+# Walks up the directory tree from this file to find .env — so it works
+# whether you run from the project root or from python_backend/.
+load_dotenv(find_dotenv(usecwd=True), override=True)
 
 class Settings:
     SARVAM_API_KEY = os.getenv("SARVAM_API_KEY")
